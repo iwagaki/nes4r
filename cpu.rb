@@ -1,62 +1,56 @@
 #!/usr/bin/ruby -Ku
 # -*- coding: utf-8 -*-
 
-BYTE = 0..7
-WORD = 0..15
+require 'bit_field'
+require 'cpu_flag'
 
-class BitField
-  def initialize(size)
-    raise if !size.is_a?(Integer)
-    raise if size == 0
-    @size = size
-    @mask = (0x1 << size) - 1
+BYTE = 0..7 # 1 byte = 8 bits
+WORD = 0..15 # 1 word = 16 bits
+
+class Cpu
+  def initialize()
+    @reg_pc = BitField.new(16) # 16 bits, program counter: PC
+    @reg_a = BitField.new(8) # 8 bits, accumulator: A
+    @reg_x = BitField.new(8) # 8 bits, X-index: X
+    @reg_y = BitField.new(8) # 8 bits, Y-index: Y
+    @reg_s = BitField.new(8) # 8 bits, stack pointer: S
+    @reg_p = CpuFlag.new # 8 bits, status flags: P
+    @clock = 0
+
+    @instruction_map = {
+      # CLC: clear carry flag
+      0x18 => lambda {
+        op_clear_flag(CpuFlag::FLAG_C)
+        op_clock(2)
+        op_step
+      },
+    }
   end
 
-  def value
-    return @value
+  def op_clock(n)
+    @clock += n
   end
 
-  def value=(value)
-    @value = value & @mask
+  def op_step(n = 1)
+    @reg_pc.value = @reg_pc.value + n
   end
 
-  def [](range)
-    if range.is_a?(Integer)
-      raise if range >= @size
-      return @value[range]
-    else
-      raise if range.begin < 0
-      raise if range.end >= @size
-      return (@value & ((0x1 << (range.end + 1)) - 1)) >> range.begin
-    end
+  def op_set_flag(index)
+    @reg_p.set_flag(index)
   end
 
-  def []=(range, value)
-    @value = value
+  def op_clear_flag(index)
+    @reg_p.clear_flag(index)
   end
+
+  def execute(code)
+    p @instruction_map[code].call
+  end
+
 end
 
 
-cpu_flag = BitField.new(8)
-instr = BitField.new(8)
-#addr = BitField.new(16)
-
-cpu_flag.value = 0b10101010
-instr.value =0b11001100
-
-FLAG_C = 0
-FLAG_Z = 1
-FLAG_I = 2
-FLAG_D = 3
-FLAG_B = 4
-FLAG_R = 5
-FLAG_V = 6
-FLAG_N = 7
-
-puts sprintf("%01b", cpu_flag[FLAG_C])
-puts sprintf("%01b", cpu_flag[FLAG_Z])
-
 ADDR_MODE = 1..4
-puts sprintf("%04b", instr[ADDR_MODE])
 
-#puts sprintf("%b", cpu_flag[8])
+cpu = Cpu.new
+cpu.execute(0x18)
