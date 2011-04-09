@@ -93,49 +93,49 @@ class Cpu
       0xA5 => lambda {
         op_step
         op_lda(am_zero_page)
-        op_clock(2)
+        op_clock(3)
       },
 
       # LDA: Load accumulator from memory
       0xB5 => lambda {
         op_step
         op_lda(am_zero_page_x_indexed)
-        op_clock(2)
+        op_clock(4)
       },
 
       # LDA: Load accumulator from memory
       0xAD => lambda {
         op_step
         op_lda(am_absolute)
-        op_clock(2)
+        op_clock(4)
       },
 
       # LDA: Load accumulator from memory
       0xBD => lambda {
         op_step
         op_lda(am_absolute_x_indexed)
-        op_clock(2)
+        op_clock(4)
       },
 
       # LDA: Load accumulator from memory
       0xB9 => lambda {
         op_step
         op_lda(am_absolute_y_indexed)
-        op_clock(2)
+        op_clock(4)
       },
 
       # LDA: Load accumulator from memory
       0xA1 => lambda {
         op_step
         op_lda(am_zero_page_indexed_indirect)
-        op_clock(2)
+        op_clock(6)
       },
 
       # LDA: Load accumulator from memory
       0xB1 => lambda {
         op_step
         op_lda(am_zero_page_indexed_indirect)
-        op_clock(2)
+        op_clock(5)
       },
 
       # NOP: No operation
