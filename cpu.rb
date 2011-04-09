@@ -120,6 +120,31 @@ class Cpu
         op_clock(2)
       },
 
+      # PHA: Push accumulator on stack
+      0x48 => lambda {
+        op_push(@reg_a.value)
+        op_clock(3)
+      },
+
+      # PHP: Push status flags on stack
+      0x08 => lambda {
+        op_push(@reg_p.value)
+        op_clock(3)
+      },
+
+      # PLA: Pull accumulator from stack
+      0x68 => lambda {
+        @reg_a.value = op_pop
+        op_test(@reg_a.value)
+        op_clock(4)
+      },
+
+      # PLP: Pull status flags from stack
+      0x28 => lambda {
+        @reg_p.value = op_pop
+        op_clock(4)
+      },
+
       # SEC: Set carry flag
       0x38 => lambda {
         op_set_flag(CpuFlag::FLAG_C)
@@ -188,6 +213,24 @@ class Cpu
 
   def op_read_word(addr16)
     return (@memory[addr16 + 1] << 8) + @memory[addr16]
+  end
+
+  def op_write_byte(addr16, val8)
+    @memory[addr16] = val8
+  end
+
+  def op_push(val8)
+    @memory[get_addr_stack] = val8
+    @reg_s.value -= 1
+  end
+
+  def op_pop
+    @reg_s.value += 1
+    return @memory[get_addr_stack]
+  end
+
+  def get_addr_stack
+    return 0x0100 + @reg_s.value
   end
 
   # 13 addressing modes (including "Implied")
@@ -300,7 +343,8 @@ memory = Array.new
 memory.fill(0, 0x0000..0xFFFF)
 code = [
         0x18, 0xD8, 0x58, 0xB8, 0x38, 0xF8, 0x78, 0xAA, 0xA8, 0xBA, 0x8A, 0x9A, 0x98, 0xCA, 0x88, 0xE8, 0xC8, 0xEA,
-        0xA9, 0x00, 0xA5, 0x00, 0xB5, 0x00, 0xAD, 0x00, 0x00, 0xBD, 0x00, 0x00, 0xB9, 0x00, 0x00, 0xA1, 0x00, 0xB1, 0x00
+        0xA9, 0x00, 0xA5, 0x00, 0xB5, 0x00, 0xAD, 0x00, 0x00, 0xBD, 0x00, 0x00, 0xB9, 0x00, 0x00, 0xA1, 0x00, 0xB1, 0x00,
+        0x48, 0x08, 0x28, 0x68
        ]
 memory[0..code.size] = code
 
