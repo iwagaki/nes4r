@@ -111,7 +111,7 @@ class Cpu
       },
 
       0xB1 => lambda {
-        op_lda(am_zero_page_indexed_indirect)
+        op_lda(am_zero_page_indirect_indexed)
         op_clock(5)
       },
 
