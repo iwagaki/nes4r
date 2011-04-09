@@ -17,10 +17,67 @@ class Cpu
     @reg_p = CpuFlag.new # 8 bits, status flags: P
     @clock = 0
 
+    # 13 Addressing modes:
+    #  Absolute:
+    #  Absolute Indirect:
+    #  Absolute X-Indexed:
+    #  Absolute Y-Indexed:
+    #  Accumulator:
+    #  Immediate:
+    #  Implied: No date required, opcode [1 byte]
+    #  Relative:
+    #  Zero Page:
+    #  Zero Page Indexed Indirect:
+    #  Zero Page indirect Indexed:
+    #  Zero Page X-Indexed:
+    #  Zero Page Y-Indexed:
     @instruction_map = {
-      # CLC: clear carry flag
+      # Nimonic AddressingMode : Description
+      # CLC Implied: Clear carry flag
       0x18 => lambda {
         op_clear_flag(CpuFlag::FLAG_C)
+        op_clock(2)
+        op_step
+      },
+
+      # CLD Implied: Clear decimal flag
+      0xD8 => lambda {
+        op_clear_flag(CpuFlag::FLAG_D)
+        op_clock(2)
+        op_step
+      },
+
+      # CLI Implied: Clear interrupt disable flag
+      0x58 => lambda {
+        op_clear_flag(CpuFlag::FLAG_I)
+        op_clock(2)
+        op_step
+      },
+
+      # CLV Implied: Clear overflow flag
+      0xB8 => lambda {
+        op_clear_flag(CpuFlag::FLAG_V)
+        op_clock(2)
+        op_step
+      },
+
+      # SEC Implied: Set carry flag
+      0x38 => lambda {
+        op_set_flag(CpuFlag::FLAG_C)
+        op_clock(2)
+        op_step
+      },
+
+      # SED Implied: Set decimal flag
+      0xF8 => lambda {
+        op_set_flag(CpuFlag::FLAG_D)
+        op_clock(2)
+        op_step
+      },
+
+      # SEI Implied: Set interrupt disable flag
+      0x78 => lambda {
+        op_set_flag(CpuFlag::FLAG_I)
         op_clock(2)
         op_step
       },
@@ -53,4 +110,4 @@ end
 ADDR_MODE = 1..4
 
 cpu = Cpu.new
-cpu.execute(0x18)
+cpu.execute(0x58)
