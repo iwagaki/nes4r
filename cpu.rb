@@ -26,28 +26,24 @@ class Cpu
       0x18 => lambda {
         op_clear_flag(CpuFlag::FLAG_C)
         op_clock(2)
-        op_step
       },
 
       # CLD: Clear decimal flag
       0xD8 => lambda {
         op_clear_flag(CpuFlag::FLAG_D)
         op_clock(2)
-        op_step
       },
 
       # CLI: Clear interrupt disable flag
       0x58 => lambda {
         op_clear_flag(CpuFlag::FLAG_I)
         op_clock(2)
-        op_step
       },
 
       # CLV: Clear overflow flag
       0xB8 => lambda {
         op_clear_flag(CpuFlag::FLAG_V)
         op_clock(2)
-        op_step
       },
 
       # DEX: Decrement X-register by one
@@ -55,7 +51,6 @@ class Cpu
         @reg_x.value -= 1
         op_test(@reg_x.value)
         op_clock(2)
-        op_step
       },
 
       # DEY: Decrement Y-register by one
@@ -63,7 +58,6 @@ class Cpu
         @reg_y.value -= 1
         op_test(@reg_y.value)
         op_clock(2)
-        op_step
       },
 
       # INX: Increment X-register by one
@@ -71,7 +65,6 @@ class Cpu
         @reg_x.value += 1
         op_test(@reg_x.value)
         op_clock(2)
-        op_step
       },
 
       # INY: Increment Y-register by one
@@ -79,61 +72,45 @@ class Cpu
         @reg_y.value += 1
         op_test(@reg_y.value)
         op_clock(2)
-        op_step
       },
 
       # LDA: Load accumulator from memory
       0xA9 => lambda {
-        op_step
         op_lda(am_immediate)
         op_clock(2)
       },
 
-      # LDA: Load accumulator from memory
       0xA5 => lambda {
-        op_step
         op_lda(am_zero_page)
         op_clock(3)
       },
 
-      # LDA: Load accumulator from memory
       0xB5 => lambda {
-        op_step
         op_lda(am_zero_page_x_indexed)
         op_clock(4)
       },
 
-      # LDA: Load accumulator from memory
       0xAD => lambda {
-        op_step
         op_lda(am_absolute)
         op_clock(4)
       },
 
-      # LDA: Load accumulator from memory
       0xBD => lambda {
-        op_step
         op_lda(am_absolute_x_indexed)
         op_clock(4)
       },
 
-      # LDA: Load accumulator from memory
       0xB9 => lambda {
-        op_step
         op_lda(am_absolute_y_indexed)
         op_clock(4)
       },
 
-      # LDA: Load accumulator from memory
       0xA1 => lambda {
-        op_step
         op_lda(am_zero_page_indexed_indirect)
         op_clock(6)
       },
 
-      # LDA: Load accumulator from memory
       0xB1 => lambda {
-        op_step
         op_lda(am_zero_page_indexed_indirect)
         op_clock(5)
       },
@@ -141,28 +118,24 @@ class Cpu
       # NOP: No operation
       0xEA => lambda {
         op_clock(2)
-        op_step
       },
 
       # SEC: Set carry flag
       0x38 => lambda {
         op_set_flag(CpuFlag::FLAG_C)
         op_clock(2)
-        op_step
       },
 
       # SED: Set decimal flag
       0xF8 => lambda {
         op_set_flag(CpuFlag::FLAG_D)
         op_clock(2)
-        op_step
       },
 
       # SEI: Set interrupt disable flag
       0x78 => lambda {
         op_set_flag(CpuFlag::FLAG_I)
         op_clock(2)
-        op_step
       },
 
       # TAX: Transfer accumulator to X-register
@@ -170,7 +143,6 @@ class Cpu
         @reg_x.value = @reg_a.value
         op_test(@reg_x.value)
         op_clock(2)
-        op_step
       },
 
       # TAY: Transfer accumulator to Y-register
@@ -178,7 +150,6 @@ class Cpu
         @reg_y.value = @reg_a.value
         op_test(@reg_y.value)
         op_clock(2)
-        op_step
       },
 
       # TSX: Transfer stack pointer to X-register
@@ -186,7 +157,6 @@ class Cpu
         @reg_x.value = @reg_s.value
         op_test(@reg_x.value)
         op_clock(2)
-        op_step
       },
 
       # TXA: Transfer X-register to accumulator
@@ -194,7 +164,6 @@ class Cpu
         @reg_a.value = @reg_x.value
         op_test(@reg_a.value)
         op_clock(2)
-        op_step
       },
 
       # TXS: Transfer X-register to stack pointer
@@ -202,7 +171,6 @@ class Cpu
         @reg_s.value = @reg_x.value
         op_test(@reg_s.value)
         op_clock(2)
-        op_step
       },
 
       # TYA: Transfer Y-register to accumulator
@@ -210,7 +178,6 @@ class Cpu
         @reg_a.value = @reg_y.value
         op_test(@reg_a.value)
         op_clock(2)
-        op_step
       },
     }
   end
@@ -223,32 +190,27 @@ class Cpu
     return @memory[addr16 + 1] << 8 + @memory[addr16]
   end
 
-  # Addressing mode #1 Implied
-  # Addressing mode #2 Immediate
+  # 13 addressing modes (including "Implied")
   def am_immediate
     addr16 = @reg_pc.value
     op_step
     return addr16
   end
 
-  # Adressing Mode #3 Zero Page
   def am_zero_page
     addr8 = op_read_byte(@reg_pc.value)
     op_step
     return 0x0000 + addr8
   end
 
-  # Addressing Mode #4 Zero Page X-Indexed
   def am_zero_page_x_indexed
     return am_zero_page + @reg_x.value
   end
 
-  # Addressing Mode #5 Zero Page Y-Indexed
   def am_zero_page_y_indexed
     return am_zero_page + @reg_y.value
   end
 
-  # Addressing Mode #6 Absolute
   def am_absolute
     addr16_low = op_read_byte(@reg_pc.value)
     op_step
@@ -257,22 +219,18 @@ class Cpu
     return addr16_high << 8 + addr16_low
   end
   
-  # Addressing Mode #7 Absolute X-Indexed
   def am_absolute_x_indexed
     return am_absolute + @reg_x.value
   end
   
-  # Addressing Mode #8 Absolute Y-Indexed
   def am_absolute_y_indexed
     return am_absolute + @reg_y.value
   end
   
-  # Addressing Mode #9 Zero Page Indexed indirect
   def am_zero_page_indexed_indirect
     return op_read_word(am_zero_page + @reg_x.value)
   end
 
-  # Addressing Mode #10 Zero Page Indirect Indexed 
   def am_zero_page_indirect_indexed
     return op_read_word(am_zero_page) + @reg_y.value
   end
@@ -315,9 +273,13 @@ class Cpu
   end
 
   def execute
-    while @reg_pc.value < @memory.size and @memory[@reg_pc.value] != 0x00
-      puts "PC = #{@reg_pc.value}, FLAG = #{@reg_p.value}, CLK = #{@clock}"
-      opcode = @memory[@reg_pc.value]
+    while @reg_pc.value < @memory.size
+      puts sprintf("PC:%04x CLK:%04d A:%02x X:%02x Y:%02x S:%02x %s",
+                   @reg_pc.value, @clock, @reg_a.value, @reg_x.value, @reg_y.value, @reg_s.value, @reg_p.to_s)
+      opcode = op_read_byte(am_immediate)
+      if opcode == 0
+        break
+      end
       @instruction_map[opcode].call
     end
   end

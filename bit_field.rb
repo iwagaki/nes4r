@@ -30,6 +30,12 @@ class BitField
   end
 
   def []=(range, value)
-    @value = value
+    if range.is_a?(Integer)
+      raise if range >= @size
+      raise if value < 0 or value > 1
+      @value = @value & ~(0x1 << range) | (value << range)
+    else
+      raise
+    end
   end
 end

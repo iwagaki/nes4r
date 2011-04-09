@@ -37,4 +37,16 @@ class CpuFlag < BitField
   def get_flag(index)
     return self[index]
   end
+
+  def to_s
+    str = (self[FLAG_N] == 0 ? '_' : 'N')
+    str << (self[FLAG_V] == 0 ? '_' : 'V')
+    str << (self[FLAG_R] == 0 ? '_' : 'R')
+    str << (self[FLAG_B] == 0 ? '_' : 'B')
+    str << (self[FLAG_D] == 0 ? '_' : 'D')
+    str << (self[FLAG_I] == 0 ? '_' : 'I')
+    str << (self[FLAG_Z] == 0 ? '_' : 'Z')
+    str << (self[FLAG_C] == 0 ? '_' : 'C')
+    return str
+  end
 end
