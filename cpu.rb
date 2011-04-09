@@ -76,42 +76,42 @@ class Cpu
 
       # LDA: Load accumulator from memory
       0xA9 => lambda {
-        op_lda(addr_immediate)
+        op_lda(get_addr_immediate)
         op_clock(2)
       },
 
       0xA5 => lambda {
-        op_lda(addr_zero_page)
+        op_lda(get_addr_zero_page)
         op_clock(3)
       },
 
       0xB5 => lambda {
-        op_lda(addr_zero_page_x_indexed)
+        op_lda(get_addr_zero_page_x_indexed)
         op_clock(4)
       },
 
       0xAD => lambda {
-        op_lda(addr_absolute)
+        op_lda(get_addr_absolute)
         op_clock(4)
       },
 
       0xBD => lambda {
-        op_lda(addr_absolute_x_indexed)
+        op_lda(get_addr_absolute_x_indexed)
         op_clock(4)
       },
 
       0xB9 => lambda {
-        op_lda(addr_absolute_y_indexed)
+        op_lda(get_addr_absolute_y_indexed)
         op_clock(4)
       },
 
       0xA1 => lambda {
-        op_lda(addr_zero_page_indexed_indirect)
+        op_lda(get_addr_zero_page_indexed_indirect)
         op_clock(6)
       },
 
       0xB1 => lambda {
-        op_lda(addr_zero_page_indirect_indexed)
+        op_lda(get_addr_zero_page_indirect_indexed)
         op_clock(5)
       },
 
@@ -191,27 +191,27 @@ class Cpu
   end
 
   # 13 addressing modes (including "Implied")
-  def addr_immediate
+  def get_addr_immediate
     addr16 = @reg_pc.value
     op_step
     return addr16
   end
 
-  def addr_zero_page
+  def get_addr_zero_page
     addr8 = op_read_byte(@reg_pc.value)
     op_step
     return 0x0000 + addr8
   end
 
-  def addr_zero_page_x_indexed
-    return addr_zero_page + @reg_x.value
+  def get_addr_zero_page_x_indexed
+    return get_addr_zero_page + @reg_x.value
   end
 
-  def addr_zero_page_y_indexed
-    return addr_zero_page + @reg_y.value
+  def get_addr_zero_page_y_indexed
+    return get_addr_zero_page + @reg_y.value
   end
 
-  def addr_absolute
+  def get_addr_absolute
     addr16_low = op_read_byte(@reg_pc.value)
     op_step
     addr16_high = op_read_byte(@reg_pc.value)
@@ -219,20 +219,20 @@ class Cpu
     return (addr16_high << 8) + addr16_low
   end
   
-  def addr_absolute_x_indexed
-    return addr_absolute + @reg_x.value
+  def get_addr_absolute_x_indexed
+    return get_addr_absolute + @reg_x.value
   end
   
-  def addr_absolute_y_indexed
-    return addr_absolute + @reg_y.value
+  def get_addr_absolute_y_indexed
+    return get_addr_absolute + @reg_y.value
   end
   
-  def addr_zero_page_indexed_indirect
-    return op_read_word(addr_zero_page + @reg_x.value)
+  def get_addr_zero_page_indexed_indirect
+    return op_read_word(get_addr_zero_page + @reg_x.value)
   end
 
-  def addr_zero_page_indirect_indexed
-    return op_read_word(addr_zero_page) + @reg_y.value
+  def get_addr_zero_page_indirect_indexed
+    return op_read_word(get_addr_zero_page) + @reg_y.value
   end
 
   def op_lda(addr16)
@@ -276,7 +276,7 @@ class Cpu
     while @reg_pc.value < @memory.size
       puts sprintf("PC:%04X CLK:%04d A:%02X X:%02X Y:%02X S:%02X %s",
                    @reg_pc.value, @clock, @reg_a.value, @reg_x.value, @reg_y.value, @reg_s.value, @reg_p.to_s)
-      opcode = op_read_byte(addr_immediate)
+      opcode = op_read_byte(get_addr_immediate)
       if opcode == 0
         break
       end
