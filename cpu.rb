@@ -61,6 +61,44 @@ class Cpu
         op_step
       },
 
+      # DEX Implied: Decrement X-register by one
+      0xCA => lambda {
+        @reg_x.value -= 1
+        op_test(@reg_x.value)
+        op_clock(2)
+        op_step
+      },
+
+      # DEY Implied: Decrement Y-register by one
+      0x88 => lambda {
+        @reg_y.value -= 1
+        op_test(@reg_y.value)
+        op_clock(2)
+        op_step
+      },
+
+      # INX Implied: Increment X-register by one
+      0xE8 => lambda {
+        @reg_x.value += 1
+        op_test(@reg_x.value)
+        op_clock(2)
+        op_step
+      },
+
+      # INY Implied: Increment Y-register by one
+      0xC8 => lambda {
+        @reg_y.value += 1
+        op_test(@reg_y.value)
+        op_clock(2)
+        op_step
+      },
+
+      # NOP Implied: No operation
+      0xEA => lambda {
+        op_clock(2)
+        op_step
+      },
+
       # SEC Implied: Set carry flag
       0x38 => lambda {
         op_set_flag(CpuFlag::FLAG_C)
@@ -137,7 +175,7 @@ class Cpu
   end
 
   def op_step(n = 1)
-    @reg_pc.value = @reg_pc.value + n
+    @reg_pc.value += n
   end
 
   def op_set_flag(index)
@@ -174,5 +212,5 @@ ADDR_MODE = 1..4
 
 cpu = Cpu.new
 
-memory = [0x18, 0xD8, 0x58, 0xB8, 0x38, 0xF8, 0x78, 0xAA, 0xA8, 0xBA, 0x8A, 0x9A, 0x98]
+memory = [0x18, 0xD8, 0x58, 0xB8, 0x38, 0xF8, 0x78, 0xAA, 0xA8, 0xBA, 0x8A, 0x9A, 0x98, 0xCA, 0x88, 0xE8, 0xC8, 0xEA]
 cpu.execute(memory)
