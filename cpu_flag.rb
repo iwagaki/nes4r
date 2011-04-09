@@ -7,7 +7,8 @@ class CpuFlag < BitField
   FLAG_C = 0 # 0 bit, carry flag : C
   FLAG_Z = 1 # 1 bit, zero flag : Z
   FLAG_I = 2 # 2 bit, interrupt disable flag : I
-  FLAG_D = 3 # 3 bit, decimal mode flag (ADC SBC works as BCD mode, Famicom's RP2A03 does not support this flag) : D
+  FLAG_D = 3 # 3 bit, decimal mode flag (BCD mode for ADC and SBC) : D
+             #        Famicom's RP2A03 does not support this flag, though it can be set/cleared
   FLAG_B = 4 # 4 bit, break flag : B
   FLAG_R = 5 # 5 bit, reserved (shoud be 1) : R
   FLAG_V = 6 # 6 bit, overflow flag (arithmetic overflow) : V
