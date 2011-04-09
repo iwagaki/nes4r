@@ -81,6 +81,60 @@ class Cpu
         op_clock(2)
         op_step
       },
+
+      # TAX Implied: Transfer accumulator to X-register
+      0xAA => lambda {
+        val8 = @reg_a.value
+        @reg_x.value = val8
+        op_test(val8)
+        op_clock(2)
+        op_step
+      },
+
+      # TAY Implied: Transfer accumulator to Y-register
+      0xA8 => lambda {
+        val8 = @reg_a.value
+        @reg_y.value = val8
+        op_test(val8)
+        op_clock(2)
+        op_step
+      },
+
+      # TSX Implied: Transfer stack pointer to X-register
+      0xBA => lambda {
+        val8 = @reg_s.value
+        @reg_x.value = val8
+        op_test(val8)
+        op_clock(2)
+        op_step
+      },
+
+      # TXA Implied: Transfer X-register to accumulator
+      0x8A => lambda {
+        val8 = @reg_x.value
+        @reg_a.value = val8
+        op_test(val8)
+        op_clock(2)
+        op_step
+      },
+
+      # TXS Implied: Transfer X-register to stack pointer
+      0x9A => lambda {
+        val8 = @reg_x.value
+        @reg_s.value = val8
+        op_test(val8)
+        op_clock(2)
+        op_step
+      },
+
+      # TYA Implied: Transfer Y-register to accumulator
+      0x98 => lambda {
+        val8 = @reg_y.value
+        @reg_a.value = val8
+        op_test(val8)
+        op_clock(2)
+        op_step
+      },
     }
   end
 
@@ -100,14 +154,31 @@ class Cpu
     @reg_p.clear_flag(index)
   end
 
-  def execute(code)
-    p @instruction_map[code].call
+  def op_test(val8)
+    raise if val8 < 0 or val8 > 255
+    @reg_p.clear_flag(CpuFlag::FLAG_N)
+    @reg_p.clear_flag(CpuFlag::FLAG_Z)
+    if val8 == 0
+      @reg_p.set_flag(CpuFlag::FLAG_Z)
+    end
+    if val8 > 127
+      @reg_p.set_flag(CpuFlag::FLAG_N)
+    end
   end
 
+  def execute(memory)
+    while @reg_pc.value < memory.size
+      puts "PC = #{@reg_pc.value}, FLAG = #{@reg_p.value}, CLK = #{@clock}"
+      opcode = memory[@reg_pc.value]
+      @instruction_map[opcode].call
+    end
+  end
 end
 
 
 ADDR_MODE = 1..4
 
 cpu = Cpu.new
-cpu.execute(0x58)
+
+memory = [0x18, 0xD8, 0x58, 0xB8, 0x38, 0xF8, 0x78, 0xAA, 0xA8, 0xBA, 0x8A, 0x9A, 0x98]
+cpu.execute(memory)
