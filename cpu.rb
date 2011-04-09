@@ -84,54 +84,48 @@ class Cpu
 
       # TAX Implied: Transfer accumulator to X-register
       0xAA => lambda {
-        val8 = @reg_a.value
-        @reg_x.value = val8
-        op_test(val8)
+        @reg_x.value = @reg_a.value
+        op_test(@reg_x.value)
         op_clock(2)
         op_step
       },
 
       # TAY Implied: Transfer accumulator to Y-register
       0xA8 => lambda {
-        val8 = @reg_a.value
-        @reg_y.value = val8
-        op_test(val8)
+        @reg_y.value = @reg_a.value
+        op_test(@reg_y.value)
         op_clock(2)
         op_step
       },
 
       # TSX Implied: Transfer stack pointer to X-register
       0xBA => lambda {
-        val8 = @reg_s.value
-        @reg_x.value = val8
-        op_test(val8)
+        @reg_x.value = @reg_s.value
+        op_test(@reg_x.value)
         op_clock(2)
         op_step
       },
 
       # TXA Implied: Transfer X-register to accumulator
       0x8A => lambda {
-        val8 = @reg_x.value
-        @reg_a.value = val8
-        op_test(val8)
+        @reg_a.value = @reg_x.value
+        op_test(@reg_a.value)
         op_clock(2)
         op_step
       },
 
       # TXS Implied: Transfer X-register to stack pointer
       0x9A => lambda {
-        val8 = @reg_x.value
-        @reg_s.value = val8
-        op_test(val8)
+        @reg_s.value = @reg_x.value
+        op_test(@reg_s.value)
         op_clock(2)
         op_step
       },
 
       # TYA Implied: Transfer Y-register to accumulator
       0x98 => lambda {
-        val8 = @reg_y.value
-        @reg_a.value = val8
-        op_test(val8)
+        @reg_a.value = @reg_y.value
+        op_test(@reg_a.value)
         op_clock(2)
         op_step
       },
