@@ -1,4 +1,4 @@
-#!/usr/bin/ruby -Ku
+#!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
 
 class BitField

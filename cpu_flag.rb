@@ -1,7 +1,7 @@
-#!/usr/bin/ruby -Ku
+#!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
 
-require 'bit_field'
+require './bit_field'
 
 class CpuFlag < BitField
   FLAG_C = 0 # 0 bit, carry flag : C

@@ -1,8 +1,8 @@
-#!/usr/bin/ruby -Ku
+#!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
 
-require 'bit_field'
-require 'cpu_flag'
+require './bit_field'
+require './cpu_flag'
 
 BYTE = 0..7 # 1 byte = 8 bits
 WORD = 0..15 # 1 word = 16 bits
@@ -115,6 +115,58 @@ class Cpu
         op_clock(5)
       },
 
+      # LDX: Load X-register from memory
+      0xA2 => lambda {
+        op_ldx(get_addr_immediate)
+        op_clock(2)
+      },
+
+      0xA6 => lambda {
+        op_ldx(get_addr_zero_page)
+        op_clock(3)
+      },
+
+      0xB6 => lambda {
+        op_ldx(get_addr_zero_page_y_indexed)
+        op_clock(4)
+      },
+
+      0xAE => lambda {
+        op_ldx(get_addr_absolute)
+        op_clock(4)
+      },
+
+      0xBE => lambda {
+        op_ldx(get_addr_absolute_y_indexed)
+        op_clock(4)
+      },
+
+      # LDY: Load Y-register from memory
+      0xA0 => lambda {
+        op_ldy(get_addr_immediate)
+        op_clock(2)
+      },
+
+      0xA4 => lambda {
+        op_ldy(get_addr_zero_page)
+        op_clock(3)
+      },
+
+      0xB4 => lambda {
+        op_ldy(get_addr_zero_page_x_indexed)
+        op_clock(4)
+      },
+
+      0xAC => lambda {
+        op_ldy(get_addr_absolute)
+        op_clock(4)
+      },
+
+      0xBC => lambda {
+        op_ldy(get_addr_absolute_y_indexed)
+        op_clock(4)
+      },
+
       # NOP: No operation
       0xEA => lambda {
         op_clock(2)
@@ -161,6 +213,74 @@ class Cpu
       0x78 => lambda {
         op_set_flag(CpuFlag::FLAG_I)
         op_clock(2)
+      },
+
+      # STA: Store accumulator to memory
+      0x85 => lambda {
+        op_st(get_addr_zero_page, @reg_a.value)
+        op_clock(3)
+      },
+
+      0x95 => lambda {
+        op_st(get_addr_zero_page_x_indexed, @reg_a.value)
+        op_clock(4)
+      },
+
+      0x8D => lambda {
+        op_st(get_addr_absolute, @reg_a.value)
+        op_clock(4)
+      },
+
+      0x9D => lambda {
+        op_st(get_addr_absolute_x_indexed, @reg_a.value)
+        op_clock(4)
+      },
+
+      0x99 => lambda {
+        op_st(get_addr_absolute_y_indexed, @reg_a.value)
+        op_clock(4)
+      },
+
+      0x81 => lambda {
+        op_st(get_addr_zero_page_indexed_indirect, @reg_a.value)
+        op_clock(6)
+      },
+
+      0x91 => lambda {
+        op_st(get_addr_zero_page_indirect_indexed, @reg_a.value)
+        op_clock(6)
+      },
+
+      # STX: Store X-register to memory
+      0x86 => lambda {
+        op_st(get_addr_zero_page, @reg_x.value)
+        op_clock(3)
+      },
+
+      0x96 => lambda {
+        op_st(get_addr_zero_page_y_indexed, @reg_x.value)
+        op_clock(4)
+      },
+
+      0x8E => lambda {
+        op_st(get_addr_absolute, @reg_x.value)
+        op_clock(4)
+      },
+
+      # STY: Store Y-register to memory
+      0x84 => lambda {
+        op_st(get_addr_zero_page, @reg_y.value)
+        op_clock(3)
+      },
+
+      0x94 => lambda {
+        op_st(get_addr_zero_page_x_indexed, @reg_y.value)
+        op_clock(4)
+      },
+
+      0x8C => lambda {
+        op_st(get_addr_absolute, @reg_y.value)
+        op_clock(4)
       },
 
       # TAX: Transfer accumulator to X-register
@@ -233,27 +353,31 @@ class Cpu
     return 0x0100 + @reg_s.value
   end
 
-  # 13 addressing modes (including "Implied")
+  # Acc
   def get_addr_immediate
     addr16 = @reg_pc.value
     op_step
     return addr16
   end
 
+  # ZP
   def get_addr_zero_page
     addr8 = op_read_byte(@reg_pc.value)
     op_step
     return 0x0000 + addr8
   end
 
+  # ZP,X
   def get_addr_zero_page_x_indexed
     return get_addr_zero_page + @reg_x.value
   end
 
+  # ZP,Y
   def get_addr_zero_page_y_indexed
     return get_addr_zero_page + @reg_y.value
   end
 
+  # Abs
   def get_addr_absolute
     addr16_low = op_read_byte(@reg_pc.value)
     op_step
@@ -261,19 +385,23 @@ class Cpu
     op_step
     return (addr16_high << 8) + addr16_low
   end
-  
+
+  # Abs,X
   def get_addr_absolute_x_indexed
     return get_addr_absolute + @reg_x.value
   end
-  
+
+  # Abs,Y
   def get_addr_absolute_y_indexed
     return get_addr_absolute + @reg_y.value
   end
-  
+
+  # (ZP,X)
   def get_addr_zero_page_indexed_indirect
     return op_read_word(get_addr_zero_page + @reg_x.value)
   end
 
+  # (ZP),Y
   def get_addr_zero_page_indirect_indexed
     return op_read_word(get_addr_zero_page) + @reg_y.value
   end
@@ -281,6 +409,20 @@ class Cpu
   def op_lda(addr16)
     @reg_a.value = op_read_byte(addr16)
     op_test(@reg_a.value)
+  end
+
+  def op_ldx(addr16)
+    @reg_x.value = op_read_byte(addr16)
+    op_test(@reg_x.value)
+  end
+
+  def op_ldy(addr16)
+    @reg_y.value = op_read_byte(addr16)
+    op_test(@reg_y.value)
+  end
+
+  def op_st(addr16, val8)
+    op_write_byte(addr16, val8)
   end
 
   def op_clock(n)
