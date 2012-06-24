@@ -148,7 +148,15 @@ class Cpu
       },
 
       # BIT: bit test (compare memory bits with A)
-      # TODO
+      0x2C => lambda {
+        op_bit(get_addr_absolute)
+        op_clock(4)
+      },
+
+      0x24 => lambda {
+        op_bit(get_addr_zero_page)
+        op_clock(4)
+      },
 
       # BMI: branch on minus
       0x30 => lambda {
@@ -169,7 +177,14 @@ class Cpu
       },
 
       # BRK: break
-      # TODO
+      0x00 => lambda {
+        op_pushw(@reg_pc.value)
+        @reg_p.set_flag(CpuFlag::FLAG_B)
+        op_push(@reg_p.value)
+        @reg_p.set_flag(CpuFlag::FLAG_I)
+        @reg_pc.value = op_read_word(0xFFFE)
+        op_clock(7)
+      },
 
       # BVC: branch on overflow clear
       0x50 => lambda {
@@ -208,9 +223,98 @@ class Cpu
       },
 
       # CMP: compare to A
+      0xCD => lambda {
+        op_cmp(@reg_a.value, get_addr_absolute)
+        op_clock(4)
+      },
+
+      0xC5 => lambda {
+        op_cmp(@reg_a.value, get_addr_zero_page)
+        op_clock(3)
+      },
+
+      0xC9 => lambda {
+        op_cmp(@reg_a.value, get_addr_immediate)
+        op_clock(2)
+      },
+
+      0xDD => lambda {
+        op_cmp(@reg_a.value, get_addr_absolute_x_indexed)
+        op_clock(4) # TODO
+      },
+
+      0xD9 => lambda {
+        op_cmp(@reg_a.value, get_addr_absolute_y_indexed)
+        op_clock(4) # TODO
+      },
+
+      0xC1 => lambda {
+        op_cmp(@reg_a.value, get_addr_zero_page_indexed_indirect)
+        op_clock(6)
+      },
+
+      0xD1 => lambda {
+        op_cmp(@reg_a.value, get_addr_zero_page_indirect_indexed)
+        op_clock(5) # TODO
+      },
+
+      0xD5 => lambda {
+        op_cmp(@reg_a.value, get_addr_zero_page_x_indexed)
+        op_clock(4)
+      },
+
       # CPX: compare to X
+      0xEC => lambda {
+        op_cmp(@reg_x.value, get_addr_absolute)
+        op_clock(4)
+      },
+
+      0xE4 => lambda {
+        op_cmp(@reg_x.value, get_addr_zero_page)
+        op_clock(3)
+      },
+
+      0xEC => lambda {
+        op_cmp(@reg_x.value, get_addr_immediate)
+        op_clock(2)
+      },
+
       # CPY: compare to Y
+      0xCC => lambda {
+        op_cmp(@reg_y.value, get_addr_absolute)
+        op_clock(4)
+      },
+
+      0xC4 => lambda {
+        op_cmp(@reg_y.value, get_addr_zero_page)
+        op_clock(3)
+      },
+
+      0xC0 => lambda {
+        op_cmp(@reg_y.value, get_addr_immediate)
+        op_clock(2)
+      },
+
       # DEC: decrement
+      0xCE => lambda {
+        op_dec(get_addr_absolute)
+        op_clock(6)
+      },
+
+      0xC6 => lambda {
+        op_dec(get_addr_zero_page)
+        op_clock(5)
+      },
+
+      0xDE => lambda {
+        op_dec(get_addr_absolute_x_indexed)
+        op_clock(7)
+      },
+
+      0xD6 => lambda {
+        op_dec(get_addr_zero_page_x_indexed)
+        op_clock(6)
+      },
 
       # DEX: decrement X
       0xCA => lambda {
@@ -227,7 +331,66 @@ class Cpu
       },
 
       # EOR: exclusive or
+      0x4D => lambda {
+        op_eor(get_addr_absolute)
+        op_clock(4)
+      },
+
+      0x45 => lambda {
+        op_eor(get_addr_zero_page)
+        op_clock(3)
+      },
+
+      0x49 => lambda {
+        op_eor(get_addr_immediate)
+        op_clock(2)
+      },
+
+      0x5D => lambda {
+        op_eor(get_addr_absolute_x_indexed)
+        op_clock(4)
+      },
+
+      0x59 => lambda {
+        op_eor(get_addr_absolute_y_indexed)
+        op_clock(4)
+      },
+
+      0x41 => lambda {
+        op_eor(get_addr_zero_page_indexed_indirect)
+        op_clock(6)
+      },
+
+      0x51 => lambda {
+        op_eor(get_addr_zero_page_indirect_indexed)
+        op_clock(5)
+      },
+
+      0x55 => lambda {
+        op_eor(get_addr_zero_page_x_indexed)
+        op_clock(4)
+      },
+
       # INC: increment
+      0xEE => lambda {
+        op_inc(get_addr_absolute)
+        op_clock(6)
+      },
+
+      0xE6 => lambda {
+        op_inc(get_addr_zero_page)
+        op_clock(5)
+      },
+
+      0xFE => lambda {
+        op_inc(get_addr_absolute_x_indexed)
+        op_clock(7)
+      },
+
+      0xF6 => lambda {
+        op_inc(get_addr_zero_page_x_indexed)
+        op_clock(6)
+      },
 
       # INX: increment X
       0xE8 => lambda {
@@ -244,7 +407,23 @@ class Cpu
       },
 
       # JMP: jump
+      0x4C => lambda {
+        op_jump(get_addr_absolute)
+        op_clock(3)
+      },
+
+      0x6C => lambda {
+        op_jump(get_addr_relative)
+        op_clock(5)
+      },
+      
       # JSR: jump to subroutine
+      0x6C => lambda {
+        val8 = op_read_byte(@reg_pc.value)
+        op_step
+        op_pushw(@reg_pc.value)
+        #TODP
+      },
 
       # LDA: load A
       0xA9 => lambda {
@@ -340,6 +519,8 @@ class Cpu
       },
 
       # LSR: logical shift right
+      
+
 
       # NOP: no operation
       0xEA => lambda {
@@ -347,6 +528,45 @@ class Cpu
       },
       
       # ORA: inclusive or
+      0x0D => lambda {
+        op_ora(get_addr_absolute)
+        op_clock(4)
+      },
+
+      0x05 => lambda {
+        op_ora(get_addr_zero_page)
+        op_clock(3)
+      },
+
+      0x09 => lambda {
+        op_ora(get_addr_immediate)
+        op_clock(2)
+      },
+
+      0x1D => lambda {
+        op_ora(get_addr_absolute_x_indexed)
+        op_clock(4)
+      },
+
+      0x19 => lambda {
+        op_ora(get_addr_absolute_y_indexed)
+        op_clock(4)
+      },
+
+      0x01 => lambda {
+        op_ora(get_addr_zero_page_indexed_indirect)
+        op_clock(6)
+      },
+
+      0x11 => lambda {
+        op_ora(get_addr_zero_page_indirect_indexed)
+        op_clock(5)
+      },
+
+      0x15 => lambda {
+        op_ora(get_addr_zero_page_x_indexed)
+        op_clock(4)
+      },
 
       # PHA: push A
       0x48 => lambda {
@@ -374,10 +594,128 @@ class Cpu
       },
 
       # ROL: rotate left
+      0x2A => lambda {
+        val8 = @reg_a.value
+        carry = val8 >> 7
+        @reg_a.value = (val8 << 1) | carry
+        op_test_n(val8)
+        op_test_z(val8)
+        if carry
+          @reg_p.set_flag(CpuFlag::FLAG_C)
+        else
+          @reg_p.clear_flag(CpuFlag::FLAG_C)
+        end
+        op_clock(2)
+      },
+
+      0x2E => lambda {
+        op_rol(get_addr_absolute)
+        op_clock(6)
+      },
+
+      0x26 => lambda {
+        op_rol(get_addr_zero_page)
+        op_clock(5)
+      },
+
+      0x3E => lambda {
+        op_rol(get_addr_absolute_x_indexed)
+        op_clock(7)
+      },
+
+      0x36 => lambda {
+        op_rol(get_addr_zero_page_x_indexed)
+        op_clock(6)
+      },
+
       # ROR: rorate right
+      0x6A => lambda {
+        val8 = @reg_a.value
+        carry = val8 & 0x1
+        @reg_a.value = (val8 >> 1) | (carry << 7)
+        op_test_n(val8)
+        op_test_z(val8)
+        if carry
+          @reg_p.set_flag(CpuFlag::FLAG_C)
+        else
+          @reg_p.clear_flag(CpuFlag::FLAG_C)
+        end
+        op_clock(2)
+      },
+
+      0x6E => lambda {
+        op_ror(get_addr_absolute)
+        op_clock(6)
+      },
+
+      0x66 => lambda {
+        op_ror(get_addr_zero_page)
+        op_clock(5)
+      },
+
+      0x7E => lambda {
+        op_ror(get_addr_absolute_x_indexed)
+        op_clock(7)
+      },
+
+      0x76 => lambda {
+        op_ror(get_addr_zero_page_x_indexed)
+        op_clock(6)
+      },
+
       # RTI: return from interrupt
+      0x40 => lambda {
+        @reg_p.value = op_pop
+        @reg_pc.value = op_popw
+        op_clock(6)
+      },
+
       # RTS: return from subroutine
+      0x60 => lambda {
+        @reg_pc.value = op_popw
+        op_clock(6)
+      },
+
       # SBC: subtract with carry
+      0xED => lambda {
+        op_sbc(get_addr_absolute)
+        op_clock(4)
+      },
+
+      0xE5 => lambda {
+        op_sbc(get_addr_zero_page)
+        op_clock(3)
+      },
+
+      0xE9 => lambda {
+        op_sbc(get_addr_immediate)
+        op_clock(2)
+      },
+
+      0xFD => lambda {
+        op_sbc(get_addr_absolute_x_indexed)
+        op_clock(4)
+      },
+
+      0xF9 => lambda {
+        op_sbc(get_addr_absolute_y_indexed)
+        op_clock(4)
+      },
+
+      0xE1 => lambda {
+        op_sbc(get_addr_zero_page_indexed_indirect)
+        op_clock(6)
+      },
+
+      0xF1 => lambda {
+        op_sbc(get_addr_zero_page_indirect_indexed)
+        op_clock(5)
+      },
+
+      0xF5 => lambda {
+        op_sbc(get_addr_zero_page_x_indexed)
+        op_clock(4)
+      },
 
       # SEC: set carry
       0x38 => lambda {
@@ -531,6 +869,16 @@ class Cpu
     return @memory[get_addr_stack]
   end
 
+  def op_pushw(val16)
+    op_push(val16 >> 8)
+    op_push(val16 & 0xff)
+  end
+
+  def op_popw
+    val8 = op_pop
+    return (op_pop << 8) | val8
+  end
+
   def get_addr_stack
     return 0x0100 + @reg_s.value
   end
@@ -568,6 +916,11 @@ class Cpu
     return (addr16_high << 8) + addr16_low
   end
 
+  # Relative (for jump)
+  def get_addr_relative
+    return op_read_word(get_addr_absolute)
+  end
+
   # Abs,X
   def get_addr_absolute_x_indexed
     return get_addr_absolute + @reg_x.value
@@ -602,6 +955,32 @@ class Cpu
     op_test_z(@reg_a.value)
   end
 
+  def op_bit(addr16)
+    val8 = (@reg_a.value & op_read_byte(addr16)) & 0xff
+    if (val8 & 0x80)
+      @reg_p.set_flag(CpuFlag::FLAG_N)
+    else
+      @reg_p.clear_flag(CpuFlag::FLAG_N)
+    end
+    if (val8 & 0x40)
+      @reg_p.set_flag(CpuFlag::FLAG_V)
+    else
+      @reg_p.clear_flag(CpuFlag::FLAG_V)
+    end
+    if (val8 != 0)
+      @reg_p.set_flag(CpuFlag::FLAG_Z)
+    else
+      @reg_p.clear_flag(CpuFlag::FLAG_Z)
+    end
+  end
+
+  def op_cmp(val8, addr16)
+    tmp_val8 = (val8 - op_read_byte(addr16)) & 0xff
+    op_test_n(tmp_val8)
+    op_test_z(tmp_val8)
+    op_test_c(tmp_val8)
+  end
+
   def op_asl_val8(val8)
     if (val8 & 0x7f)
       @reg_p.set_flag(CpuFlag::FLAG_C)
@@ -619,6 +998,42 @@ class Cpu
     op_write_byte(addr16, op_asl_val8(op_read_byte(addr16)))
   end
 
+  def op_ror(addr16)
+    val8 = op_read_byte(add16)
+    carry = val8 & 0x1
+    val8 = (val8 >> 1) | (carry << 7)
+    op_write_byte(addr16, val8)
+    op_test_n(val8)
+    op_test_z(val8)
+    if carry
+      @reg_p.set_flag(CpuFlag::FLAG_C)
+    else
+      @reg_p.clear_flag(CpuFlag::FLAG_C)
+    end
+  end
+
+  def op_rol(addr16)
+    val8 = op_read_byte(add16)
+    carry = val8 >> 7
+    val8 = (val8 << 1) | carry
+    op_write_byte(addr16, val8)
+    op_test_n(val8)
+    op_test_z(val8)
+    if carry
+      @reg_p.set_flag(CpuFlag::FLAG_C)
+    else
+      @reg_p.clear_flag(CpuFlag::FLAG_C)
+    end
+  end
+
+  def op_sbc(addr16)
+    @reg_a.value = @reg_a.value - op_read_byte(addr16) - @reg_p.get_flag(CpuFlag::FLAG_C)
+    op_test_n(@reg_a.value)
+    op_test_v(@reg_a.value)
+    op_test_z(@reg_a.value)
+    op_test_c(@reg_a.value)
+  end
+
   def op_branch(flag)
     offset = op_read_byte(@reg_pc.value)
     if flag
@@ -626,6 +1041,34 @@ class Cpu
     else
       op_step
     end
+  end
+
+  def op_jump(addr16)
+    @reg_pc.value = op_read_word(addr16)
+  end
+
+  def op_dec(addr16)
+    val8 = op_read_byte(addr16) - 1
+    op_test_z(val8)
+    op_test_n(val8)
+    op_write_byte(addr16, val8)
+  end
+
+  def op_dec(addr16)
+    val8 = op_read_byte(addr16) + 1
+    op_test_z(val8)
+    op_test_n(val8)
+    op_write_byte(addr16, val8)
+  end
+
+  def op_eor(addr16)
+    @reg_a.value = @reg_a.value ^ op_read_byte(addr16)
+    op_test(@reg_a.value)
+  end
+
+  def op_ora(addr16)
+    @reg_a.value = @reg_a.value | op_read_byte(addr16)
+    op_test(@reg_a.value)
   end
 
   def op_lda(addr16)
