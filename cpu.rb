@@ -157,64 +157,96 @@ class Cpu
       },
 
       # BNE: branch if not equal to zero
-      0x30 => lambda {
+      0xD0 => lambda {
         op_branch(!@reg_p.get_flag(CpuFlag::FLAG_Z))
         op_clock(2) # TODO
       },
 
-      # CLC: Clear carry flag
+      # BPL: branch on plus
+      0x10 => lambda {
+        op_branch(!@reg_p.get_flag(CpuFlag::FLAG_N))
+        op_clock(2) # TODO
+      },
+
+      # BRK: break
+      # TODO
+
+      # BVC: branch on overflow clear
+      0x50 => lambda {
+        op_branch(!@reg_p.get_flag(CpuFlag::FLAG_V))
+        op_clock(2) # TODO
+      },
+
+      # BVS: branch on overflow set
+      0x70 => lambda {
+        op_branch(@reg_p.get_flag(CpuFlag::FLAG_N))
+        op_clock(2) # TODO
+      },
+
+      # CLC: clear carry
       0x18 => lambda {
         op_clear_flag(CpuFlag::FLAG_C)
         op_clock(2)
       },
 
-      # CLD: Clear decimal flag
+      # CLD: clear decimal flag
       0xD8 => lambda {
         op_clear_flag(CpuFlag::FLAG_D)
         op_clock(2)
       },
 
-      # CLI: Clear interrupt disable flag
+      # CLI: clear interrupt mask
       0x58 => lambda {
         op_clear_flag(CpuFlag::FLAG_I)
         op_clock(2)
       },
 
-      # CLV: Clear overflow flag
+      # CLV: clear overflow flag
       0xB8 => lambda {
         op_clear_flag(CpuFlag::FLAG_V)
         op_clock(2)
       },
 
-      # DEX: Decrement X-register by one
+      # CMP: compare to A
+      # CPX: compare to X
+      # CPY: compare to Y
+      # DEC: decrement
+
+      # DEX: decrement X
       0xCA => lambda {
         @reg_x.value -= 1
         op_test(@reg_x.value)
         op_clock(2)
       },
 
-      # DEY: Decrement Y-register by one
+      # DEY: decrement Y
       0x88 => lambda {
         @reg_y.value -= 1
         op_test(@reg_y.value)
         op_clock(2)
       },
 
-      # INX: Increment X-register by one
+      # EOR: exclusive or
+      # INC: increment
+
+      # INX: increment X
       0xE8 => lambda {
         @reg_x.value += 1
         op_test(@reg_x.value)
         op_clock(2)
       },
 
-      # INY: Increment Y-register by one
+      # INY: increment Y
       0xC8 => lambda {
         @reg_y.value += 1
         op_test(@reg_y.value)
         op_clock(2)
       },
 
-      # LDA: Load accumulator from memory
+      # JMP: jump
+      # JSR: jump to subroutine
+
+      # LDA: load A
       0xA9 => lambda {
         op_lda(get_addr_immediate)
         op_clock(2)
@@ -255,7 +287,7 @@ class Cpu
         op_clock(5)
       },
 
-      # LDX: Load X-register from memory
+      # LDX: load X
       0xA2 => lambda {
         op_ldx(get_addr_immediate)
         op_clock(2)
@@ -281,7 +313,7 @@ class Cpu
         op_clock(4)
       },
 
-      # LDY: Load Y-register from memory
+      # LDY: load Y
       0xA0 => lambda {
         op_ldy(get_addr_immediate)
         op_clock(2)
@@ -307,55 +339,65 @@ class Cpu
         op_clock(4)
       },
 
-      # NOP: No operation
+      # LSR: logical shift right
+
+      # NOP: no operation
       0xEA => lambda {
         op_clock(2)
       },
+      
+      # ORA: inclusive or
 
-      # PHA: Push accumulator on stack
+      # PHA: push A
       0x48 => lambda {
         op_push(@reg_a.value)
         op_clock(3)
       },
 
-      # PHP: Push status flags on stack
+      # PHP: push P
       0x08 => lambda {
         op_push(@reg_p.value)
         op_clock(3)
       },
 
-      # PLA: Pull accumulator from stack
+      # PLA: pull A
       0x68 => lambda {
         @reg_a.value = op_pop
         op_test(@reg_a.value)
         op_clock(4)
       },
 
-      # PLP: Pull status flags from stack
+      # PLP: pull P
       0x28 => lambda {
         @reg_p.value = op_pop
         op_clock(4)
       },
 
-      # SEC: Set carry flag
+      # ROL: rotate left
+      # ROR: rorate right
+      # RTI: return from interrupt
+      # RTS: return from subroutine
+      # SBC: subtract with carry
+
+      # SEC: set carry
       0x38 => lambda {
         op_set_flag(CpuFlag::FLAG_C)
         op_clock(2)
       },
 
-      # SED: Set decimal flag
+      # SED: set decimal flag
       0xF8 => lambda {
         op_set_flag(CpuFlag::FLAG_D)
         op_clock(2)
       },
 
-      # SEI: Set interrupt disable flag
+      # SEI: set interrupt mask
       0x78 => lambda {
         op_set_flag(CpuFlag::FLAG_I)
         op_clock(2)
       },
 
-      # STA: Store accumulator to memory
+      # STA: store A
       0x85 => lambda {
         op_st(get_addr_zero_page, @reg_a.value)
         op_clock(3)
@@ -391,7 +433,7 @@ class Cpu
         op_clock(6)
       },
 
-      # STX: Store X-register to memory
+      # STX: store X
       0x86 => lambda {
         op_st(get_addr_zero_page, @reg_x.value)
         op_clock(3)
@@ -407,7 +449,7 @@ class Cpu
         op_clock(4)
       },
 
-      # STY: Store Y-register to memory
+      # STY: store Y
       0x84 => lambda {
         op_st(get_addr_zero_page, @reg_y.value)
         op_clock(3)
@@ -423,42 +465,42 @@ class Cpu
         op_clock(4)
       },
 
-      # TAX: Transfer accumulator to X-register
+      # TAX: transfer A to X
       0xAA => lambda {
         @reg_x.value = @reg_a.value
         op_test(@reg_x.value)
         op_clock(2)
       },
 
-      # TAY: Transfer accumulator to Y-register
+      # TAY: transfer A to Y
       0xA8 => lambda {
         @reg_y.value = @reg_a.value
         op_test(@reg_y.value)
         op_clock(2)
       },
 
-      # TSX: Transfer stack pointer to X-register
+      # TSX: transfer SP to X
       0xBA => lambda {
         @reg_x.value = @reg_s.value
         op_test(@reg_x.value)
         op_clock(2)
       },
 
-      # TXA: Transfer X-register to accumulator
+      # TXA: transfer X to A
       0x8A => lambda {
         @reg_a.value = @reg_x.value
         op_test(@reg_a.value)
         op_clock(2)
       },
 
-      # TXS: Transfer X-register to stack pointer
+      # TXS: transfer X to SP
       0x9A => lambda {
         @reg_s.value = @reg_x.value
         op_test(@reg_s.value)
         op_clock(2)
       },
 
-      # TYA: Transfer Y-register to accumulator
+      # TYA: transfer Y to A
       0x98 => lambda {
         @reg_a.value = @reg_y.value
         op_test(@reg_a.value)
