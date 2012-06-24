@@ -16,12 +16,152 @@ class Cpu
     @reg_s = BitField.new(8) # 8 bits, stack pointer: S
     @reg_p = CpuFlag.new # 8 bits, status flags: P
     @clock = 0
-    
+
     # reset stack pointer
     @reg_s.value = 0xFF
 
     @instruction_map = {
-      # Nemonic : Description
+      # ADC: add with carry
+      0x6D => lambda {
+        op_adc(get_addr_absolute)
+        op_clock(4)
+      },
+
+      0x65 => lambda {
+        op_adc(get_addr_zero_page)
+        op_clock(3)
+      },
+
+      0x69 => lambda {
+        op_adc(get_addr_immediate)
+        op_clock(2)
+      },
+
+      0x7D => lambda {
+        op_adc(get_addr_absolute_x_indexed)
+        op_clock(4) # +1
+      },
+
+      0x79 => lambda {
+        op_adc(get_addr_absolute_y_indexed)
+        op_clock(4) # +1
+      },
+
+      0x61 => lambda {
+        op_adc(get_addr_zero_page_indexed_indirect)
+        op_clock(6)
+      },
+
+      0x71 => lambda {
+        op_adc(get_addr_zero_page_indirect_indexed)
+        op_clock(5) # +1
+      },
+
+      0x75 => lambda {
+        op_adc(get_addr_zero_page_x_indexed)
+        op_clock(4)
+      },
+
+      # AND: and
+      0x2D => lambda {
+        op_and(get_addr_absolute)
+        op_clock(4)
+      },
+
+      0x25 => lambda {
+        op_and(get_addr_zero_page)
+        op_clock(3)
+      },
+
+      0x29 => lambda {
+        op_and(get_addr_immediate)
+        op_clock(2)
+      },
+
+      0x3D => lambda {
+        op_and(get_addr_absolute_x_indexed)
+        op_clock(4) # +1
+      },
+
+      0x39 => lambda {
+        op_and(get_addr_absolute_y_indexed)
+        op_clock(4) # +1
+      },
+
+      0x21 => lambda {
+        op_and(get_addr_zero_page_indexed_indirect)
+        op_clock(6)
+      },
+
+      0x31 => lambda {
+        op_and(get_addr_zero_page_indirect_indexed)
+        op_clock(5) # +1
+      },
+
+      0x35 => lambda {
+        op_and(get_addr_zero_page_x_indexed)
+        op_clock(4)
+      },
+
+      # ASL: arithmetic shift left
+      0x0A => lambda {
+        @reg_a.value = op_asl_val8(@reg_a.value)
+        op_clock(2)
+      },
+
+      0x0E => lambda {
+        op_asl(get_addr_absolute)
+        op_clock(6)
+      },
+
+      0x06 => lambda {
+        op_asl(get_addr_zero_page)
+        op_clock(5)
+      },
+
+      0x1E => lambda {
+        op_asl(get_addr_absolute_x_indexed)
+        op_clock(7)
+      },
+
+      0x16 => lambda {
+        op_asl(get_addr_zero_page_x_indexed)
+        op_clock(6)
+      },
+
+      # BCC: branch on carry clear
+      0x90 => lambda {
+        op_branch(!@reg_p.get_flag(CpuFlag::FLAG_C))
+        op_clock(2) # TODO
+      },
+
+      # BCS: branch on carry set
+      0xB0 => lambda {
+        op_branch(@reg_p.get_flag(CpuFlag::FLAG_C))
+        op_clock(2) # TODO
+      },
+
+      # BEQ: branch if equal to zero
+      0xF0 => lambda {
+        op_branch(@reg_p.get_flag(CpuFlag::FLAG_Z))
+        op_clock(2) # TODO
+      },
+
+      # BIT: bit test (compare memory bits with A)
+      # TODO
+
+      # BMI: branch on minus
+      0x30 => lambda {
+        op_branch(@reg_p.get_flag(CpuFlag::FLAG_N))
+        op_clock(2) # TODO
+      },
+
+      # BNE: branch if not equal to zero
+      0x30 => lambda {
+        op_branch(!@reg_p.get_flag(CpuFlag::FLAG_Z))
+        op_clock(2) # TODO
+      },
+
       # CLC: Clear carry flag
       0x18 => lambda {
         op_clear_flag(CpuFlag::FLAG_C)
@@ -406,6 +546,46 @@ class Cpu
     return op_read_word(get_addr_zero_page) + @reg_y.value
   end
 
+  def op_adc(addr16)
+    @reg_a.value = @reg_a.value + op_read_byte(addr16) + @reg_p.get_flag(CpuFlag::FLAG_C)
+    op_test_n(@reg_a.value)
+    op_test_v(@reg_a.value)
+    op_test_z(@reg_a.value)
+    op_test_c(@reg_a.value)
+  end
+
+  def op_and(addr16)
+    @reg_a.value &= op_read_byte(addr16)
+    op_test_n(@reg_a.value)
+    op_test_z(@reg_a.value)
+  end
+
+  def op_asl_val8(val8)
+    if (val8 & 0x7f)
+      @reg_p.set_flag(CpuFlag::FLAG_C)
+    else
+      @reg_p.clear_flag(CpuFlag::FLAG_C)
+    end
+    val8 = (val8 << 1) & 0xff
+    op_test_n(val8)
+    op_test_z(val8)
+    op_test_c(val8)
+    return val8
+  end
+
+  def op_asl(addr16)
+    op_write_byte(addr16, op_asl_val8(op_read_byte(addr16)))
+  end
+
+  def op_branch(flag)
+    offset = op_read_byte(@reg_pc.value)
+    if flag
+      @reg_pc = @reg_pc + offset
+    else
+      op_step
+    end
+  end
+
   def op_lda(addr16)
     @reg_a.value = op_read_byte(addr16)
     op_test(@reg_a.value)
@@ -439,6 +619,18 @@ class Cpu
 
   def op_clear_flag(index)
     @reg_p.clear_flag(index)
+  end
+
+  def op_test_n(val8)
+  end
+
+  def op_test_v(val8)
+  end
+
+  def op_test_z(val8)
+  end
+
+  def op_test_c(val8)
   end
 
   def op_test(val8)
@@ -492,4 +684,3 @@ memory[0..code.size] = code
 
 cpu.set_memory(memory)
 cpu.execute()
-
