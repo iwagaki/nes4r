@@ -319,14 +319,16 @@ class Cpu
       # DEX: decrement X
       0xCA => lambda {
         @reg_x.value -= 1
-        op_test(@reg_x.value)
+        op_test_n(@reg_x.value)
+        op_test_z(@reg_x.value)
         op_clock(2)
       },
 
       # DEY: decrement Y
       0x88 => lambda {
         @reg_y.value -= 1
-        op_test(@reg_y.value)
+        op_test_n(@reg_y.value)
+        op_test_z(@reg_y.value)
         op_clock(2)
       },
 
@@ -395,14 +397,16 @@ class Cpu
       # INX: increment X
       0xE8 => lambda {
         @reg_x.value += 1
-        op_test(@reg_x.value)
+        op_test_n(@reg_x.value)
+        op_test_z(@reg_x.value)
         op_clock(2)
       },
 
       # INY: increment Y
       0xC8 => lambda {
         @reg_y.value += 1
-        op_test(@reg_y.value)
+        op_test_n(@reg_y.value)
+        op_test_z(@reg_y.value)
         op_clock(2)
       },
 
@@ -583,7 +587,8 @@ class Cpu
       # PLA: pull A
       0x68 => lambda {
         @reg_a.value = op_pop
-        op_test(@reg_a.value)
+        op_test_n(@reg_a.value)
+        op_test_z(@reg_a.value)
         op_clock(4)
       },
 
@@ -600,11 +605,7 @@ class Cpu
         @reg_a.value = (val8 << 1) | carry
         op_test_n(val8)
         op_test_z(val8)
-        if carry
-          @reg_p.set_flag(CpuFlag::FLAG_C)
-        else
-          @reg_p.clear_flag(CpuFlag::FLAG_C)
-        end
+        @reg_p.set_flag(CpuFlag::FLAG_C, carry)
         op_clock(2)
       },
 
@@ -635,11 +636,7 @@ class Cpu
         @reg_a.value = (val8 >> 1) | (carry << 7)
         op_test_n(val8)
         op_test_z(val8)
-        if carry
-          @reg_p.set_flag(CpuFlag::FLAG_C)
-        else
-          @reg_p.clear_flag(CpuFlag::FLAG_C)
-        end
+        @reg_p.set_flag(CpuFlag::FLAG_C, carry)
         op_clock(2)
       },
 
@@ -806,42 +803,48 @@ class Cpu
       # TAX: transfer A to X
       0xAA => lambda {
         @reg_x.value = @reg_a.value
-        op_test(@reg_x.value)
+        op_test_n(@reg_x.value)
+        op_test_z(@reg_x.value)
         op_clock(2)
       },
 
       # TAY: transfer A to Y
       0xA8 => lambda {
         @reg_y.value = @reg_a.value
-        op_test(@reg_y.value)
+        op_test_n(@reg_y.value)
+        op_test_z(@reg_y.value)
         op_clock(2)
       },
 
       # TSX: transfer SP to X
       0xBA => lambda {
         @reg_x.value = @reg_s.value
-        op_test(@reg_x.value)
+        op_test_n(@reg_x.value)
+        op_test_z(@reg_x.value)
         op_clock(2)
       },
 
       # TXA: transfer X to A
       0x8A => lambda {
         @reg_a.value = @reg_x.value
-        op_test(@reg_a.value)
+        op_test_n(@reg_a.value)
+        op_test_z(@reg_a.value)
         op_clock(2)
       },
 
       # TXS: transfer X to SP
       0x9A => lambda {
         @reg_s.value = @reg_x.value
-        op_test(@reg_s.value)
+        op_test_n(@reg_s.value)
+        op_test_z(@reg_s.value)
         op_clock(2)
       },
 
       # TYA: transfer Y to A
       0x98 => lambda {
         @reg_a.value = @reg_y.value
-        op_test(@reg_a.value)
+        op_test_n(@reg_a.value)
+        op_test_z(@reg_a.value)
         op_clock(2)
       },
     }
@@ -944,7 +947,7 @@ class Cpu
   def op_adc(addr16)
     @reg_a.value = @reg_a.value + op_read_byte(addr16) + @reg_p.get_flag(CpuFlag::FLAG_C)
     op_test_n(@reg_a.value)
-    op_test_v(@reg_a.value)
+    op_test_v_adc(@reg_a.value)
     op_test_z(@reg_a.value)
     op_test_c(@reg_a.value)
   end
@@ -957,21 +960,10 @@ class Cpu
 
   def op_bit(addr16)
     val8 = (@reg_a.value & op_read_byte(addr16)) & 0xff
-    if (val8 & 0x80)
-      @reg_p.set_flag(CpuFlag::FLAG_N)
-    else
-      @reg_p.clear_flag(CpuFlag::FLAG_N)
-    end
-    if (val8 & 0x40)
-      @reg_p.set_flag(CpuFlag::FLAG_V)
-    else
-      @reg_p.clear_flag(CpuFlag::FLAG_V)
-    end
-    if (val8 != 0)
-      @reg_p.set_flag(CpuFlag::FLAG_Z)
-    else
-      @reg_p.clear_flag(CpuFlag::FLAG_Z)
-    end
+    op_test_n(val8)
+    op_test_z(val8)
+    @reg_p.set_flag(CpuFlag::FLAG_V, (val8 >> 6) & 0x1)
+
   end
 
   def op_cmp(val8, addr16)
@@ -982,15 +974,11 @@ class Cpu
   end
 
   def op_asl_val8(val8)
-    if (val8 & 0x7f)
-      @reg_p.set_flag(CpuFlag::FLAG_C)
-    else
-      @reg_p.clear_flag(CpuFlag::FLAG_C)
-    end
+    @reg_p.set_flag(CpuFlag::FLAG_C, val8 >> 7)
+
     val8 = (val8 << 1) & 0xff
     op_test_n(val8)
     op_test_z(val8)
-    op_test_c(val8)
     return val8
   end
 
@@ -1005,11 +993,8 @@ class Cpu
     op_write_byte(addr16, val8)
     op_test_n(val8)
     op_test_z(val8)
-    if carry
-      @reg_p.set_flag(CpuFlag::FLAG_C)
-    else
-      @reg_p.clear_flag(CpuFlag::FLAG_C)
-    end
+    @reg_p.set_flag(CpuFlag::FLAG_C, carry)
+
   end
 
   def op_rol(addr16)
@@ -1019,17 +1004,13 @@ class Cpu
     op_write_byte(addr16, val8)
     op_test_n(val8)
     op_test_z(val8)
-    if carry
-      @reg_p.set_flag(CpuFlag::FLAG_C)
-    else
-      @reg_p.clear_flag(CpuFlag::FLAG_C)
-    end
+    @reg_p.set_flag(CpuFlag::FLAG_C, carry)
   end
 
   def op_sbc(addr16)
     @reg_a.value = @reg_a.value - op_read_byte(addr16) - @reg_p.get_flag(CpuFlag::FLAG_C)
     op_test_n(@reg_a.value)
-    op_test_v(@reg_a.value)
+    op_test_v_sbc(@reg_a.value)
     op_test_z(@reg_a.value)
     op_test_c(@reg_a.value)
   end
@@ -1063,27 +1044,32 @@ class Cpu
 
   def op_eor(addr16)
     @reg_a.value = @reg_a.value ^ op_read_byte(addr16)
-    op_test(@reg_a.value)
+    op_test_n(@reg_a.value)
+    op_test_z(@reg_a.value)
   end
 
   def op_ora(addr16)
     @reg_a.value = @reg_a.value | op_read_byte(addr16)
-    op_test(@reg_a.value)
+    op_test_n(@reg_a.value)
+    op_test_z(@reg_a.value)
   end
 
   def op_lda(addr16)
     @reg_a.value = op_read_byte(addr16)
-    op_test(@reg_a.value)
+    op_test_n(@reg_a.value)
+    op_test_z(@reg_a.value)
   end
 
   def op_ldx(addr16)
     @reg_x.value = op_read_byte(addr16)
-    op_test(@reg_x.value)
+    op_test_n(@reg_x.value)
+    op_test_z(@reg_x.value)
   end
 
   def op_ldy(addr16)
     @reg_y.value = op_read_byte(addr16)
-    op_test(@reg_y.value)
+    op_test_n(@reg_y.value)
+    op_test_z(@reg_y.value)
   end
 
   def op_st(addr16, val8)
@@ -1107,28 +1093,32 @@ class Cpu
   end
 
   def op_test_n(val8)
+    @reg_p.clear_flag(CpuFlag::FLAG_N)
+    @reg_p.set_flag(CpuFlag::FLAG_N) if val8 & 0x80
   end
 
-  def op_test_v(val8)
+  def op_test_v_add(c, a, b) # c = a + b
+    @reg_p.clear_flag(CpuFlag::FLAG_V)
+    @reg_p.set_flag(CpuFlag::FLAG_V) if ((a ^ b) ^ 0x80) & (a ^ c) & 0x80
+    #TODO
+  end
+
+  def op_test_v_sub(c, a, b) # c = a - b
+    @reg_p.clear_flag(CpuFlag::FLAG_V)
+    @reg_p.set_flag(CpuFlag::FLAG_V) if (a ^ b) & (a ^ c) & 0x80
+    #TODO
   end
 
   def op_test_z(val8)
+    @reg_p.clear_flag(CpuFlag::FLAG_Z)
+    @reg_p.set_flag(CpuFlag::FLAG_Z) if val8 == 0
   end
 
   def op_test_c(val8)
+    @reg_p.clear_flag(CpuFlag::FLAG_C)
+    @reg_p.set_flag(CpuFlag::FLAG_C) if val8 & 0x100
   end
 
-  def op_test(val8)
-    raise if val8 < 0 or val8 > 255
-    @reg_p.clear_flag(CpuFlag::FLAG_N)
-    @reg_p.clear_flag(CpuFlag::FLAG_Z)
-    if val8 == 0
-      @reg_p.set_flag(CpuFlag::FLAG_Z)
-    end
-    if val8 >= 0x80
-      @reg_p.set_flag(CpuFlag::FLAG_N)
-    end
-  end
 
   def set_memory(memory)
     @memory = memory
@@ -1147,25 +1137,29 @@ class Cpu
   end
 end
 
+def main
+  cpu = Cpu.new
 
-ADDR_MODE = 1..4
+  # memory map
+  # 0x0000 - 0x00FF: Page Zero
+  # 0x0100 - 0x01FF: Page One (Stack)
+  # 0xFFFA - 0xFFFB: Non-maskabale interrupt vector
+  # 0xFFFC - 0xFFFD: Reset vector
+  # 0xFFFE - 0xFFFF: Maskable interrupt vector
+  # 0x10000 - Registers
+  memory = Array.new
+  memory.fill(0, 0x0000..0xFFFF)
+  code = [
+          0x18, 0xD8, 0x58, 0xB8, 0x38, 0xF8, 0x78, 0xAA, 0xA8, 0xBA, 0x8A, 0x9A, 0x98, 0xCA, 0x88, 0xE8, 0xC8, 0xEA,
+          0xA9, 0x00, 0xA5, 0x00, 0xB5, 0x00, 0xAD, 0x00, 0x00, 0xBD, 0x00, 0x00, 0xB9, 0x00, 0x00, 0xA1, 0x00, 0xB1, 0x00,
+          0x48, 0x08, 0x28, 0x68
+         ]
+  memory[0..code.size] = code
 
-cpu = Cpu.new
+  cpu.set_memory(memory)
+  cpu.execute()
+end
 
-# memory map
-# 0x0000 - 0x00FF: Page Zero
-# 0x0100 - 0x01FF: Page One (Stack)
-# 0xFFFA - 0xFFFB: Non-maskabale interrupt vector
-# 0xFFFC - 0xFFFD: Reset vector
-# 0xFFFE - 0xFFFF: Maskable interrupt vector
-memory = Array.new
-memory.fill(0, 0x0000..0xFFFF)
-code = [
-        0x18, 0xD8, 0x58, 0xB8, 0x38, 0xF8, 0x78, 0xAA, 0xA8, 0xBA, 0x8A, 0x9A, 0x98, 0xCA, 0x88, 0xE8, 0xC8, 0xEA,
-        0xA9, 0x00, 0xA5, 0x00, 0xB5, 0x00, 0xAD, 0x00, 0x00, 0xBD, 0x00, 0x00, 0xB9, 0x00, 0x00, 0xA1, 0x00, 0xB1, 0x00,
-        0x48, 0x08, 0x28, 0x68
-       ]
-memory[0..code.size] = code
-
-cpu.set_memory(memory)
-cpu.execute()
+if __FILE__ == $0
+  main
+end
