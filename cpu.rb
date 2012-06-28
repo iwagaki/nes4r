@@ -8,6 +8,8 @@ BYTE = 0..7 # 1 byte = 8 bits
 WORD = 0..15 # 1 word = 16 bits
 
 class Cpu
+  attr_accessor :reg_pc, :reg_a, :reg_x, :reg_y, :reg_s, :reg_p, :clock
+
   def initialize()
     @reg_pc = BitField.new(16) # 16 bits, program counter: PC
     @reg_a = BitField.new(8) # 8 bits, accumulator: A
@@ -131,19 +133,19 @@ class Cpu
 
       # BCC: branch on carry clear
       0x90 => lambda {
-        op_branch(!@reg_p.get_flag(CpuFlag::FLAG_C))
+        op_branch(@reg_p.get_flag(CpuFlag::FLAG_C) == 0)
         op_clock(2) # TODO
       },
 
       # BCS: branch on carry set
       0xB0 => lambda {
-        op_branch(@reg_p.get_flag(CpuFlag::FLAG_C))
+        op_branch(@reg_p.get_flag(CpuFlag::FLAG_C) == 1)
         op_clock(2) # TODO
       },
 
       # BEQ: branch if equal to zero
       0xF0 => lambda {
-        op_branch(@reg_p.get_flag(CpuFlag::FLAG_Z))
+        op_branch(@reg_p.get_flag(CpuFlag::FLAG_Z) == 1)
         op_clock(2) # TODO
       },
 
@@ -160,19 +162,19 @@ class Cpu
 
       # BMI: branch on minus
       0x30 => lambda {
-        op_branch(@reg_p.get_flag(CpuFlag::FLAG_N))
+        op_branch(@reg_p.get_flag(CpuFlag::FLAG_N) == 1)
         op_clock(2) # TODO
       },
 
       # BNE: branch if not equal to zero
       0xD0 => lambda {
-        op_branch(!@reg_p.get_flag(CpuFlag::FLAG_Z))
+        op_branch(@reg_p.get_flag(CpuFlag::FLAG_Z) == 0)
         op_clock(2) # TODO
       },
 
       # BPL: branch on plus
       0x10 => lambda {
-        op_branch(!@reg_p.get_flag(CpuFlag::FLAG_N))
+        op_branch(@reg_p.get_flag(CpuFlag::FLAG_N) == 0)
         op_clock(2) # TODO
       },
 
@@ -188,13 +190,13 @@ class Cpu
 
       # BVC: branch on overflow clear
       0x50 => lambda {
-        op_branch(!@reg_p.get_flag(CpuFlag::FLAG_V))
+        op_branch(@reg_p.get_flag(CpuFlag::FLAG_V) == 0)
         op_clock(2) # TODO
       },
 
       # BVS: branch on overflow set
       0x70 => lambda {
-        op_branch(@reg_p.get_flag(CpuFlag::FLAG_N))
+        op_branch(@reg_p.get_flag(CpuFlag::FLAG_N) == 1)
         op_clock(2) # TODO
       },
 
@@ -1094,18 +1096,22 @@ class Cpu
 
   def op_test_n(val8)
     @reg_p.clear_flag(CpuFlag::FLAG_N)
-    @reg_p.set_flag(CpuFlag::FLAG_N) if val8 & 0x80
+    puts @reg_p.value
+    puts val8
+    puts val8 & 0x80
+    @reg_p.set_flag(CpuFlag::FLAG_N) if val8 & 0x80 != 0
+    puts @reg_p.value
   end
 
   def op_test_v_add(c, a, b) # c = a + b
     @reg_p.clear_flag(CpuFlag::FLAG_V)
-    @reg_p.set_flag(CpuFlag::FLAG_V) if ((a ^ b) ^ 0x80) & (a ^ c) & 0x80
+    @reg_p.set_flag(CpuFlag::FLAG_V) if ((a ^ b) ^ 0x80) & (a ^ c) & 0x80 != 0
     #TODO
   end
 
   def op_test_v_sub(c, a, b) # c = a - b
     @reg_p.clear_flag(CpuFlag::FLAG_V)
-    @reg_p.set_flag(CpuFlag::FLAG_V) if (a ^ b) & (a ^ c) & 0x80
+    @reg_p.set_flag(CpuFlag::FLAG_V) if (a ^ b) & (a ^ c) & 0x80 != 0
     #TODO
   end
 
@@ -1116,7 +1122,7 @@ class Cpu
 
   def op_test_c(val8)
     @reg_p.clear_flag(CpuFlag::FLAG_C)
-    @reg_p.set_flag(CpuFlag::FLAG_C) if val8 & 0x100
+    @reg_p.set_flag(CpuFlag::FLAG_C) if val8 & 0x100 != 0
   end
 
 
@@ -1124,16 +1130,23 @@ class Cpu
     @memory = memory
   end
 
-  def execute
+  def dump
+    puts sprintf("PC:%04X CLK:%04d A:%02X X:%02X Y:%02X S:%02X %s",
+                 @reg_pc.value, @clock, @reg_a.value, @reg_x.value, @reg_y.value, @reg_s.value, @reg_p.to_s)
+  end
+
+  def execute(max_step = nil)
+    step_count = 0
     while @reg_pc.value < @memory.size
-      puts sprintf("PC:%04X CLK:%04d A:%02X X:%02X Y:%02X S:%02X %s",
-                   @reg_pc.value, @clock, @reg_a.value, @reg_x.value, @reg_y.value, @reg_s.value, @reg_p.to_s)
-      opcode = op_read_byte(get_addr_immediate)
-      if opcode == 0
+      if max_step != nil && step_count >= max_step
         break
       end
+      dump
+      opcode = op_read_byte(get_addr_immediate)
       @instruction_map[opcode].call
+      step_count += 1
     end
+    dump
   end
 end
 
