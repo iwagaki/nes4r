@@ -38,6 +38,66 @@ class CpuFlag < BitField
     return self[index]
   end
 
+  def set_n(flag = true)
+    self[FLAG_N] = flag ? 1 : 0
+    return self
+  end
+
+  def clear_n
+    self[FLAG_N] = 0
+    return self
+  end
+
+  def set_z(flag = true)
+    self[FLAG_Z] = flag ? 1 : 0
+    return self
+  end
+
+  def clear_z
+    self[FLAG_Z] = 0
+    return self
+  end
+
+  def set_c(flag = true)
+    self[FLAG_C] = flag ? 1 : 0
+    return self
+  end
+
+  def clear_c
+    self[FLAG_C] = 0
+    return self
+  end
+
+  def set_d(flag = true)
+    self[FLAG_D] = flag ? 1 : 0
+    return self
+  end
+
+  def clear_d
+    self[FLAG_D] = 0
+    return self
+  end
+
+  def set_v(flag = true)
+    self[FLAG_V] = flag ? 1 : 0
+    return self
+  end
+
+  def clear_v
+    self[FLAG_V] = 0
+    return self
+  end
+
+  def set_i(flag = true)
+    self[FLAG_I] = flag ? 1 : 0
+    return self
+  end
+
+  def clear_i
+    self[FLAG_I] = 0
+    return self
+  end
+
   def to_s
     str = (self[FLAG_N] == 0 ? '_' : 'N')
     str << (self[FLAG_V] == 0 ? '_' : 'V')

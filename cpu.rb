@@ -1095,12 +1095,15 @@ class Cpu
   end
 
   def op_test_n(val8)
-    @reg_p.clear_flag(CpuFlag::FLAG_N)
-    puts @reg_p.value
-    puts val8
-    puts val8 & 0x80
-    @reg_p.set_flag(CpuFlag::FLAG_N) if val8 & 0x80 != 0
-    puts @reg_p.value
+    @reg_p.set_n(val8 & 0x80 != 0)
+  end
+
+  def op_test_z(val8)
+    @reg_p.set_z(val8 == 0)
+  end
+
+  def op_test_c(val16)
+    @reg_p.set_c(val16 & 0x100 != 0)
   end
 
   def op_test_v_add(c, a, b) # c = a + b
@@ -1113,16 +1116,6 @@ class Cpu
     @reg_p.clear_flag(CpuFlag::FLAG_V)
     @reg_p.set_flag(CpuFlag::FLAG_V) if (a ^ b) & (a ^ c) & 0x80 != 0
     #TODO
-  end
-
-  def op_test_z(val8)
-    @reg_p.clear_flag(CpuFlag::FLAG_Z)
-    @reg_p.set_flag(CpuFlag::FLAG_Z) if val8 == 0
-  end
-
-  def op_test_c(val8)
-    @reg_p.clear_flag(CpuFlag::FLAG_C)
-    @reg_p.set_flag(CpuFlag::FLAG_C) if val8 & 0x100 != 0
   end
 
 
