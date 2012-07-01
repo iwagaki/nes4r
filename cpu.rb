@@ -202,19 +202,19 @@ class Cpu
 
       # CLC: clear carry
       0x18 => lambda {
-        op_clear_flag(CpuFlag::FLAG_C)
+        @reg_p.clear_c
         op_clock(2)
       },
 
       # CLD: clear decimal flag
       0xD8 => lambda {
-        op_clear_flag(CpuFlag::FLAG_D)
+        @reg_p.clear_d
         op_clock(2)
       },
 
       # CLI: clear interrupt mask
       0x58 => lambda {
-        op_clear_flag(CpuFlag::FLAG_I)
+        @reg_p.clear_i
         op_clock(2)
       },
 
@@ -419,7 +419,7 @@ class Cpu
       },
 
       0x6C => lambda {
-        op_jump(get_addr_relative)
+        op_jump(get_addr_indirect)
         op_clock(5)
       },
       
@@ -718,19 +718,19 @@ class Cpu
 
       # SEC: set carry
       0x38 => lambda {
-        op_set_flag(CpuFlag::FLAG_C)
+        @reg_p.set_c
         op_clock(2)
       },
 
       # SED: set decimal flag
       0xF8 => lambda {
-        op_set_flag(CpuFlag::FLAG_D)
+        @reg_p.set_d
         op_clock(2)
       },
 
       # SEI: set interrupt mask
       0x78 => lambda {
-        op_set_flag(CpuFlag::FLAG_I)
+        @reg_p.set_i
         op_clock(2)
       },
 
@@ -853,10 +853,12 @@ class Cpu
   end
 
   def op_read_byte(addr16)
+    raise "Error: Out of memory" if addr16 >= @memory.size
     return @memory[addr16]
   end
 
   def op_read_word(addr16)
+    raise "Error: Out of memory" if addr16 + 1 >= @memory.size
     return (@memory[addr16 + 1] << 8) + @memory[addr16]
   end
 
@@ -899,17 +901,17 @@ class Cpu
   def get_addr_zero_page
     addr8 = op_read_byte(@reg_pc.value)
     op_step
-    return 0x0000 + addr8
+    return addr8
   end
 
   # ZP,X
   def get_addr_zero_page_x_indexed
-    return get_addr_zero_page + @reg_x.value
+    return (get_addr_zero_page + @reg_x.value) & 0xFF
   end
 
   # ZP,Y
   def get_addr_zero_page_y_indexed
-    return get_addr_zero_page + @reg_y.value
+    return (get_addr_zero_page + @reg_y.value) & 0xFF
   end
 
   # Abs
@@ -921,37 +923,48 @@ class Cpu
     return (addr16_high << 8) + addr16_low
   end
 
-  # Relative (for jump)
-  def get_addr_relative
-    return op_read_word(get_addr_absolute)
-  end
-
   # Abs,X
   def get_addr_absolute_x_indexed
-    return get_addr_absolute + @reg_x.value
+    return (get_addr_absolute + @reg_x.value) & 0xFFFF
   end
 
   # Abs,Y
   def get_addr_absolute_y_indexed
-    return get_addr_absolute + @reg_y.value
+    return (get_addr_absolute + @reg_y.value) & 0xFFFF
   end
 
   # (ZP,X)
   def get_addr_zero_page_indexed_indirect
-    return op_read_word(get_addr_zero_page + @reg_x.value)
+    return op_read_word(get_addr_zero_page_x_indexed)
   end
 
   # (ZP),Y
   def get_addr_zero_page_indirect_indexed
-    return op_read_word(get_addr_zero_page) + @reg_y.value
+    return (op_read_word(get_addr_zero_page) + @reg_y.value) & 0xFFFF
+  end
+
+  # Indirect
+  def get_addr_indirect
+    return op_read_word(get_addr_absolute)
+  end
+
+  # Relative
+  def get_addr_relative
+    val8 = op_read_byte(@reg_pc.value)
+    borrow = (val8 & 0x80 == 0) ? 0 : 0x100
+    return (@reg_pc.value + val8 - borrow) & 0xFFFF
   end
 
   def op_adc(addr16)
-    @reg_a.value = @reg_a.value + op_read_byte(addr16) + @reg_p.get_flag(CpuFlag::FLAG_C)
-    op_test_n(@reg_a.value)
-    op_test_v_adc(@reg_a.value)
-    op_test_z(@reg_a.value)
-    op_test_c(@reg_a.value)
+    op1 = @reg_a.value
+    op2 = op_read_byte(addr16)
+    val16 = op1 + op2 + @reg_p.get_flag(CpuFlag::FLAG_C)
+    val8 = val16 & 0xFF
+    op_test_n(val8)
+    op_test_z(val8)
+    op_test_c(val16)
+    op_test_v_add(val8, op1, op2)
+    @reg_a.value = val8
   end
 
   def op_and(addr16)
@@ -1018,11 +1031,9 @@ class Cpu
   end
 
   def op_branch(flag)
-    offset = op_read_byte(@reg_pc.value)
+    addr16 = get_addr_relative
     if flag
-      @reg_pc = @reg_pc + offset
-    else
-      op_step
+      @reg_pc = (@reg_pc + offset) & 0xFFFF
     end
   end
 
@@ -1083,15 +1094,7 @@ class Cpu
   end
 
   def op_step(n = 1)
-    @reg_pc.value += n
-  end
-
-  def op_set_flag(index)
-    @reg_p.set_flag(index)
-  end
-
-  def op_clear_flag(index)
-    @reg_p.clear_flag(index)
+    @reg_pc.value = (@reg_pc.value + n) & 0xFFFF
   end
 
   def op_test_n(val8)
@@ -1107,9 +1110,7 @@ class Cpu
   end
 
   def op_test_v_add(c, a, b) # c = a + b
-    @reg_p.clear_flag(CpuFlag::FLAG_V)
-    @reg_p.set_flag(CpuFlag::FLAG_V) if ((a ^ b) ^ 0x80) & (a ^ c) & 0x80 != 0
-    #TODO
+    @reg_p.set_v(((a ^ b) ^ 0x80) & (a ^ c) & 0x80 != 0)
   end
 
   def op_test_v_sub(c, a, b) # c = a - b
@@ -1134,12 +1135,12 @@ class Cpu
       if max_step != nil && step_count >= max_step
         break
       end
-      dump
+#      dump
       opcode = op_read_byte(get_addr_immediate)
       @instruction_map[opcode].call
       step_count += 1
     end
-    dump
+#    dump
   end
 end
 
