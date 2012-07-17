@@ -205,12 +205,54 @@ class TC_cpu < Test::Unit::TestCase
     assert_equal((0x80 + 0x80 + 0) & 0xFF, @cpu.reg_a.value)
     assert_equal(@old_flags.clear_n.set_z.set_c.set_v.value, @cpu.reg_p.value)
   end
+end
 
-  def test_adc
-    @cpu.reg_a.value = 0x40
-    @cpu.reg_p.set_c
-    step([ 0x6D, 0x03, 0x00, 0x3F ], 1)
-    assert_equal((0x40 + 0x3F + 1) & 0xFF, @cpu.reg_a.value)
-    assert_equal(@old_flags.set_n.clear_z.clear_c.set_v.value, @cpu.reg_p.value)
+module AddressingModeTestRunner
+  def setup
+    @cpu = Cpu.new
+    @cpu.reg_p.reset
+    @old_flags = @cpu.reg_p.dup
+    @old_pc = @cpu.reg_pc.dup
+    pre_condition
   end
+
+  def teardown
+    post_condition
+  end
+
+  def step(code, step)
+    @cpu.set_memory(code)
+    @cpu.execute(step)
+  end
+
+  def test_addr_immediate
+    if @op_code.has_key?('immediate')
+      step( [@op_code['immediate']] + [ 0x7F ], 1)
+    end
+  end
+
+  def test_addr_absolute
+    if @op_code.has_key?('absolute')
+      step( [@op_code['absolute']] + [ 0x03, 0x00, 0x7F ], 1)
+    end
+  end
+end
+
+class TC_adc < Test::Unit::TestCase
+  include AddressingModeTestRunner
+
+  def pre_condition
+    @cpu.reg_a.value = 0x80
+    @cpu.reg_p.set_c
+
+    @op_code = {
+      "immediate" => 0x69,
+      "absolute" => 0x6D,
+    }
+  end
+
+ def post_condition
+   assert_equal((0x80 + 0x7F + 1) & 0xFF, @cpu.reg_a.value)
+   assert_equal(@old_flags.clear_n.set_z.set_c.clear_v.value, @cpu.reg_p.value)
+ end
 end
